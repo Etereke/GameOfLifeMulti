@@ -1,0 +1,16 @@
+{
+  "name": "gameoflifemulti",
+  "version": "1.0.0",
+  "description": "game of life multiplayer version",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server"
+  },
+  "author": "Lorem Ipsum",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.3",
+    "moment": "^2.29.3",
+    "socket.io": "^4.4.1"
+  }
+}
