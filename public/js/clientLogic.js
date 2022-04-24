@@ -1,16 +1,15 @@
 canvas = document.getElementById("canvas");
-const PLAYER_ROWS = 15, PLAYER_COLS = 15;
-const CELL_SIZE = 25
-const ROWS = PLAYER_ROWS * 2;
-const COLS = PLAYER_COLS * 2;
-const PLAYER_CELL_SIZE = 2 * CELL_SIZE;
-const CANVAS_WIDTH = COLS * CELL_SIZE;
-const CANVAS_HEIGHT = ROWS * CELL_SIZE;
-const colors = ["#FF0000", "#0022ff", "#0cf214", "#ffcd03"];
 canvas.setAttribute("width", CANVAS_WIDTH);
 canvas.setAttribute("height", CANVAS_HEIGHT);
 var ctx = canvas.getContext("2d");
+var playerColor = "#000000";
 
+const { username, room } = Qs.parse(location.search, {
+    ignoreQueryPrefix: true
+})
+////////////////////////////////////
+//Játékosnak üres mátrix készítése//
+////////////////////////////////////
 function createPlayerGrid(){
   let grid = new Array(PLAYER_COLS);
   for(let i = 0; i < grid.length; i++){
@@ -21,7 +20,9 @@ function createPlayerGrid(){
   }
   return grid;
 }
-
+////////////////////////
+//Kirajzoló függvények//
+////////////////////////
 function drawPlayer(grid){
   ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
   let y = 0;
@@ -31,7 +32,7 @@ function drawPlayer(grid){
           ctx.beginPath();
           ctx.rect(x, y, PLAYER_CELL_SIZE, PLAYER_CELL_SIZE);
           if (col == 1) {
-              ctx.fillStyle = "#000000";
+              ctx.fillStyle = playerColor;
               ctx.fill();
           }
           ctx.stroke();
@@ -58,6 +59,9 @@ function drawFull(grid){
       y += CELL_SIZE;
   }
 }
+///////////////////////////////////////////////////////////////
+//Mátrix randomizálása - teszteléshez, esetleg később feature//
+///////////////////////////////////////////////////////////////
 function randomizeGrid(grid){
   for(let i = 0; i < PLAYER_COLS; i++){
       for(let j = 0; j < PLAYER_ROWS; j++){
@@ -67,64 +71,47 @@ function randomizeGrid(grid){
       }
   }
 }
-function fullGrid(grid){
-  for(let i = 0; i < PLAYER_COLS; i++){
-      for(let j = 0; j < PLAYER_ROWS; j++){
-          grid[i][j] = 1;
-      }
-  }
-}
-function animate (grid) {
-    requestAnimationFrame(function(){
-        animate(grid);
-});
-    // calc elapsed time since last loop
-    now = Date.now();
-    elapsed = now - then;
-    // if enough time has elapsed, draw the next frame
-    if (elapsed > fpsInterval) {
-        // Get ready for next frame by setting then=now, but also adjust for your
-        // specified fpsInterval not being a multiple of RAF's interval (16.7ms)
-        then = now - (elapsed % fpsInterval);
-        // Put your drawing code here
-        drawFull(grid);
-  let next = calculateNextGen(grid);
-  grid = next;
-  }   
-}
 
-function startAnimating(grid) {
-    fpsInterval = 5000 / FPS;
-    then = Date.now();
-    startTime = then;
-    animate(grid);
+/////////////////////////////////////////////////////
+//Játékos tudja kattintással feltölteni a  mátrixát//
+/////////////////////////////////////////////////////
+function handleClick(e) {
+    coordX = Math.floor(e.offsetX/PLAYER_CELL_SIZE);
+    coordY = Math.floor(e.offsetY/PLAYER_CELL_SIZE);
+    
+    if(myGrid[coordY][coordX] == 0)
+      myGrid[coordY][coordX] = 1;
+    else
+      myGrid[coordY][coordX] = 0;
+    drawPlayer(myGrid);
 }
-
-/*module.exports = {
-  PLAYER_ROWS,
-  CELL_SIZE,
-  ROWS,
-  COLS,
-  PLAYER_CELL_SIZE,
-  CANVAS_WIDTH,
-  CANVAS_HEIGHT,
-  colors
-}*/
+function sendGrid(){
+  socket.emit('readyPlayer', myGrid);
+  canvas.removeEventListener('click', handleClick);
+  document.getElementById("readyBtn").removeEventListener('click', sendGrid);
+}
 
 
 //Tesztelés
 const socket = io();
 let myGrid = createPlayerGrid();
-randomizeGrid(myGrid);
-//fullGrid(myGrid);
+//randomizeGrid(myGrid);
 drawPlayer(myGrid);
-socket.emit('joined', myGrid);
-socket.on('startGame', (fullGrid) => {
+socket.emit('joinRoom', {username, room});
+canvas.addEventListener('click', handleClick);
+document.getElementById("readyBtn").addEventListener('click', sendGrid);
+
+
+/*socket.on('startGame', (fullGrid) => {
   //players = playerList;
   //let grid = createFullGrid();
   drawFull(fullGrid);
   //startAnimating(grid);
+});*/
+socket.on('roomUsers',({ color, users }) => {
+    playerColor = color;
+    console.log(users);
 });
 socket.on('update', (fullGrid) => {
   drawFull(fullGrid);
-})
+});

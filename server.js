@@ -3,18 +3,19 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 
+const {userJoin, getCurrentUser, userLeave, getRoomUsers, countUsers, addUserGrid, countReady, flipUserReady} = require('./utils/users')
+const {PLAYER_ROWS, PLAYER_COLS, ROWS, COLS, colors, MAX_GEN} = require('./public/js/constants.js');
+
 const app = express();
 const server = http.createServer(app);
 const io = socketio(server);
-const PLAYER_ROWS = 15, PLAYER_COLS = 15;
-const ROWS = PLAYER_ROWS * 2;
-const COLS = PLAYER_COLS * 2;
 
 //Set static folder
 app.use(express.static(path.join(__dirname, 'public')));
-var userNum = 0;
-var players = [];
-var fullGrid;
+
+///////////////////////////////////////////////////////////
+//Játékosok mátrixainak összegyúrása a paraméter szobában//
+///////////////////////////////////////////////////////////
 function createFullEmptyGrid(){
   let grid = new Array(COLS);
   for(let i = 0; i < grid.length; i++){
@@ -25,12 +26,13 @@ function createFullEmptyGrid(){
   }
   return grid;
 }
-function createFullGrid(){
+function createFullGrid(room){
   let grid = createFullEmptyGrid();
+  let players = getRoomUsers(room);
   if(players[0]){
     for(let i = 0; i < PLAYER_COLS; i++){
       for(let j = 0; j < PLAYER_ROWS; j++){
-        if(players[0][i][j])
+        if(players[0].grid[i][j])
           grid[i][j] = 1;
         else
           grid[i][j] = 0;
@@ -40,7 +42,7 @@ function createFullGrid(){
   if(players[1]){
     for(let i = 0; i < PLAYER_COLS; i++){
       for(let j = 0; j < PLAYER_ROWS; j++){
-        if(players[1][i][j])
+        if(players[1].grid[i][j])
           grid[i][j + PLAYER_COLS] = 2;
         else
           grid[i][j + PLAYER_COLS] = 0;
@@ -50,7 +52,7 @@ function createFullGrid(){
   if(players[2]){
     for(let i = 0; i < PLAYER_COLS; i++){
       for(let j = 0; j < PLAYER_ROWS; j++){
-        if(players[2][i][j])
+        if(players[2].grid[i][j])
           grid[i + PLAYER_ROWS][j] = 3;
         else
           grid[i + PLAYER_ROWS][j] = 0;
@@ -60,7 +62,7 @@ function createFullGrid(){
   if(players[3]){
     for(let i = 0; i < PLAYER_COLS; i++){
       for(let j = 0; j < PLAYER_ROWS; j++){
-        if(players[3][i][j])
+        if(players[3].grid[i][j])
           grid[i + PLAYER_ROWS][j + PLAYER_COLS] = 4;
         else
           grid[i + PLAYER_ROWS][j + PLAYER_COLS] = 0;
@@ -69,7 +71,9 @@ function createFullGrid(){
   }
   return grid;
 }
-
+//////////////////
+//Játék logikája//
+//////////////////
 function countNeighbors(grid, x, y) {
     let sum = 0;
     for (let i = -1; i < 2; i++) {
@@ -124,26 +128,62 @@ function calculateNextGen(grid){
   }
   return newGrid;
 }
-
-
+//////////////////////
+//Socket.io kezelése//
+//////////////////////
 io.on('connection', socket =>{
-  console.log("test");
-  socket.on('joined', (playerGrid) => {
-    userNum++;
-    players.push(playerGrid);
-    console.log('# of players: ' + userNum);
-    if(userNum >= 4){
-      fullGrid = createFullGrid();
-      io.emit('startGame', fullGrid);
-      setInterval(() => {
-        fullGrid = calculateNextGen(fullGrid);
-        io.emit('update', fullGrid);
-      }, 50);
+  //Amikor csatlakozik a szobába
+   socket.on('joinRoom', ({ username, room }) => {
+        const user = userJoin(socket.id, username, room);
+        socket.join(user.room);
+        // Send users and room info
+        io.to(user.id).emit('roomUsers', {
+            color: colors[countUsers(user.room) - 1],
+            users: getRoomUsers(user.room)
+        })
+    })
+  //Amikor rákattint a 'Ready' gombra
+  socket.on('readyPlayer', (playerGrid) => {
+    const user = getCurrentUser(socket.id);
+    if (user) {
+      addUserGrid(user.id, playerGrid);
+      flipUserReady(user.id);
+      console.log('# of ready players: ' + countReady(user.room));
+      if(countUsers(user.room) >= 2 && countReady(user.room) == countUsers(user.room)){
+        io.sockets.adapter.rooms.get(user.room).fullGrid = createFullGrid(user.room);
+        let grid = io.sockets.adapter.rooms.get(user.room).fullGrid;
+        //io.to(user.room).emit('startGame', fullGrid);
+        io.sockets.adapter.rooms.get(user.room).currentGen = 0;
+        io.sockets.adapter.rooms.get(user.room).interval = setInterval(() => {
+          grid = calculateNextGen(grid);
+          io.sockets.adapter.rooms.get(user.room).currentGen++;
+          io.to(user.room).emit('update', grid);
+          if(io.sockets.adapter.rooms.get(user.room).currentGen > MAX_GEN){
+            clearInterval(io.sockets.adapter.rooms.get(user.room).interval);
+          }
+        }, 50);
+      }
     }
+    
+  });
+  socket.on('chatMessage', (msg) => {
+    const user = getCurrentUser(socket.id)
+    if (user) {
+      io.to(user.room).emit('message', formatMessage(user.username, msg))
+    }
+  })
+  socket.on('disconnect', () => {
+    const user = userLeave(socket.id);
+    /*if (user) {
+      // Send users and room info
+      io.to(user.room).emit('roomUsers', {
+        room: user.room,
+        users: getRoomUsers(user.room)
+      })
+    }*/
   });
 });
 
 
 const PORT = 3000 || process.env.PORT;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`))
-//app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
