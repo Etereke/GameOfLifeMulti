@@ -40,10 +40,17 @@
     </style>
 </head>
 <body>
-    <canvas id="canvas"></canvas>
-    <button type="button" id="readyBtn">Ready</button>
-    <!--<script src="this_2.js"></script>-->
-    <script src="js/constants.js"></script>
+  <canvas id="canvas"></canvas>
+  <button type="button" id="readyBtn">Ready</button>
+  <button type="button" id="resetBtn" hidden>New game</button>
+  <div class="players" id="players">
+    
+  </div>
+
+  <div class="generations">
+    <span id="curr_gen"></span>/<span id="max_gen"></span>
+  </div>
+  <script src="js/constants.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qs/6.10.3/qs.min.js" integrity="sha512-juaCj8zi594KHQqb92foyp87mCSriYjw3BcTHaXsAn4pEB1YWh+z+XQScMxIxzsjfM4BeVFV3Ij113lIjWiC2w==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/clientLogic.js"></script>

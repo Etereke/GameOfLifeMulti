@@ -3,8 +3,8 @@ const http = require('http');
 const express = require('express');
 const socketio = require('socket.io');
 
-const {userJoin, getCurrentUser, userLeave, getRoomUsers, countUsers, addUserGrid, countReady, flipUserReady} = require('./utils/users')
-const {PLAYER_ROWS, PLAYER_COLS, ROWS, COLS, colors, MAX_GEN} = require('./public/js/constants.js');
+const {userJoin, getCurrentUser, userLeave, getRoomUsers, countUsers, addUserGrid, countReady, flipUserReady, getRoomColors, resetReadyUsers, resetScores} = require('./utils/users')
+const {PLAYER_ROWS, PLAYER_COLS, ROWS, COLS, possibleColors, MAX_GEN} = require('./public/js/constants.js');
 
 const app = express();
 const server = http.createServer(app);
@@ -128,59 +128,144 @@ function calculateNextGen(grid){
   }
   return newGrid;
 }
+
+function countPoints(grid){
+  let points = [0, 0, 0, 0];
+  for(let i = 0; i < COLS; i++){
+    for(let j = 0; j < ROWS; j++){
+      if(grid[i][j] > 0){
+        points[grid[i][j]-1]++;
+      }
+    }
+  }
+  return points;
+}
+
+
 //////////////////////
 //Socket.io kezelése//
 //////////////////////
 io.on('connection', socket =>{
   //Amikor csatlakozik a szobába
    socket.on('joinRoom', ({ username, room }) => {
-        const user = userJoin(socket.id, username, room);
-        socket.join(user.room);
-        // Send users and room info
-        io.to(user.id).emit('roomUsers', {
-            color: colors[countUsers(user.room) - 1],
+        //const user = userJoin(socket.id, username, room, colors[countUsers(room)]);
+      //let color = io.sockets.adapter.rooms.get(room).availableColors.shift();
+    //const user = userJoin(socket.id, username, room, "#000000");
+        
+     //Megnézzük van-e már 4 játékos, ha nincs akkor csatlakozik
+     if(countUsers(room) < 4)
+     {
+     let colors = getRoomColors(room);
+     let color = "#000000";
+     for(let i = 0; i < 4; i ++){
+       if(colors.includes(possibleColors[i]) === false){
+         color = possibleColors[i];
+         break;
+       }
+     }
+     //color = io.sockets.adapter.rooms.get(room).availableColors.shift();
+     const user = userJoin(socket.id, username, room, color);
+     socket.join(room);
+     console.log(username + " joined room " + room);
+     console.log(getRoomUsers(room));
+        //io.sockets.adapter.rooms.get(user.room).availableColors = colors;
+          
+        // 
+        io.to(user.id).emit('color', {
+            color: user.color
+        });
+     
+        io.to(user.room).emit('roomUsers', {
             users: getRoomUsers(user.room)
-        })
-    })
+        });
+     }
+     else {
+       console.log("tele");
+       socket.emit("full", room);
+     }
+    });
   //Amikor rákattint a 'Ready' gombra
   socket.on('readyPlayer', (playerGrid) => {
     const user = getCurrentUser(socket.id);
     if (user) {
       addUserGrid(user.id, playerGrid);
       flipUserReady(user.id);
-      console.log('# of ready players: ' + countReady(user.room));
+      //console.log('# of ready players: ' + countReady(user.room));
       if(countUsers(user.room) >= 2 && countReady(user.room) == countUsers(user.room)){
         io.sockets.adapter.rooms.get(user.room).fullGrid = createFullGrid(user.room);
         let grid = io.sockets.adapter.rooms.get(user.room).fullGrid;
-        //io.to(user.room).emit('startGame', fullGrid);
+        let colors = getRoomColors(user.room);
+        io.to(user.room).emit('startGame', grid, colors);
         io.sockets.adapter.rooms.get(user.room).currentGen = 0;
         io.sockets.adapter.rooms.get(user.room).interval = setInterval(() => {
           grid = calculateNextGen(grid);
           io.sockets.adapter.rooms.get(user.room).currentGen++;
-          io.to(user.room).emit('update', grid);
-          if(io.sockets.adapter.rooms.get(user.room).currentGen > MAX_GEN){
+          let points = countPoints(grid);
+          let users = getRoomUsers(user.room);
+          for(let i = 0; i < users.length; i++){
+            users[i].score = points[i];
+          }
+          let lostPlayers = 0;
+          for(let i = 0; i < points.length; i++){
+            if(points[i] == 0) lostPlayers++;
+          }
+          io.to(user.room).emit('update', grid, getRoomUsers(user.room), io.sockets.adapter.rooms.get(user.room).currentGen++, points);
+          if(io.sockets.adapter.rooms.get(user.room).currentGen > MAX_GEN || lostPlayers > 2){
+            let maxScore = Math.max(...points);
+            let winners = [];
+            for(let i = 0; i < users.length; i++){
+              if(users[i].score == maxScore){
+                winners.push(users[i].username);
+              }
+            }
+            io.to(user.room).emit('gameOver', winners);
+            resetReadyUsers(user.room);
+            resetScores(user.room);
             clearInterval(io.sockets.adapter.rooms.get(user.room).interval);
           }
         }, 50);
       }
     }
-    
   });
+
+io.of("/").adapter.on("create-room", (room) => {
+  //console.log(`room ${room} was created`);
+  //io.sockets.adapter.rooms.get(room).availableColors = possibleColors;
+});
+
+/*io.of("/").adapter.on("leave-room", (room, id) => {
+  //console.log(`socket ${id} has left room ${room}`);
+  //const user = userLeave(socket.id);
+  //if(user){
+  //  console.log(getRoomUsers(room));
+    //io.to(user.room).emit('roomUsers', {
+    //  users: getRoomUsers(room)
+    //});
+  }
+});*/
+io.of("/").adapter.on("delete-room", (room) => {
+  //console.log(`room ${room} was deleted`);
+});
+
+  
   socket.on('chatMessage', (msg) => {
     const user = getCurrentUser(socket.id)
     if (user) {
       io.to(user.room).emit('message', formatMessage(user.username, msg))
     }
   })
+  
   socket.on('disconnect', () => {
+    //room = user.room;
     const user = userLeave(socket.id);
-    /*if (user) {
-      // Send users and room info
+    if(user){
+      //console.log(user.room);
+      //console.log(io.sockets.adapter.rooms.get(user.room).availableColors);
+      
       io.to(user.room).emit('roomUsers', {
-        room: user.room,
-        users: getRoomUsers(user.room)
-      })
-    }*/
+              users: getRoomUsers(user.room)
+      });
+    }
   });
 });
 

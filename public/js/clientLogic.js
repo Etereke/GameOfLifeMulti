@@ -1,8 +1,17 @@
+
 canvas = document.getElementById("canvas");
 canvas.setAttribute("width", CANVAS_WIDTH);
 canvas.setAttribute("height", CANVAS_HEIGHT);
-var ctx = canvas.getContext("2d");
+ctx = canvas.getContext("2d");
+var activePlayers = 0;
+var playersDiv = document.getElementById("players");
+var currGenSpan = document.getElementById("curr_gen");
+document.getElementById("max_gen").innerHTML = MAX_GEN;
+var readyBtn = document.getElementById("readyBtn");
+var resetBtn = document.getElementById("resetBtn");
+var colors = [];
 var playerColor = "#000000";
+var myGrid = createPlayerGrid();
 
 const { username, room } = Qs.parse(location.search, {
     ignoreQueryPrefix: true
@@ -91,27 +100,91 @@ function sendGrid(){
   document.getElementById("readyBtn").removeEventListener('click', sendGrid);
 }
 
+function newGame(){
+  resetBtn.removeEventListener('click', newGame);
+  resetBtn.hidden = true;
+  readyBtn.hidden = false;
+  readyBtn.addEventListener('click', sendGrid);
+  canvas.addEventListener('click', handleClick);
+  drawPlayer(myGrid);
+}
 
 //Tesztelés
 const socket = io();
-let myGrid = createPlayerGrid();
+
 //randomizeGrid(myGrid);
 drawPlayer(myGrid);
 socket.emit('joinRoom', {username, room});
 canvas.addEventListener('click', handleClick);
-document.getElementById("readyBtn").addEventListener('click', sendGrid);
+readyBtn.addEventListener('click', sendGrid);
 
 
-/*socket.on('startGame', (fullGrid) => {
+socket.on('startGame', (fullGrid, playerColors) => {
   //players = playerList;
   //let grid = createFullGrid();
+  readyBtn.hidden = true;
+  colors = playerColors;
+  console.log(colors);
   drawFull(fullGrid);
   //startAnimating(grid);
-});*/
-socket.on('roomUsers',({ color, users }) => {
-    playerColor = color;
-    console.log(users);
 });
-socket.on('update', (fullGrid) => {
+socket.on('roomUsers', (users) => {
+  playersDiv.innerHTML = "";
+  users = users.users;
+
+  for (let i = 0; i < users.length; i++) {
+    let div = document.createElement("div");
+    div.style.backgroundColor = "black";
+    div.style.color = users[i].color;
+    let span = document.createElement("span");
+    span.setAttribute("id", users[i].username);
+    span.innerHTML = "0";
+    div.innerHTML = users[i].username;
+    div.appendChild(span);
+    playersDiv.appendChild(div);
+  }
+});
+socket.on('color',({ color }) => {
+    playerColor = color;
+});
+
+socket.on('full',( room ) => {
+  alert('A(z) ' + room + ' szoba tele van!');
+  location.href = 'index.html';
+
+});
+
+socket.on('gameOver',( winners ) => {
+  resetBtn.hidden = false;
+  resetBtn.addEventListener('click', newGame);
+  if(winners.length == 1){
+    alert('The winner is ' + winners[0] + '!');
+  }
+  else if(winners.length <= 4){
+    str = 'Tie between the following players: ';
+    for(let i = 0; i < winners.length; i++){
+      str+=winners[i] + ' ';
+    }
+    alert(str);
+  }
+  else{
+    alert('Ennek nem kéne megtörténnie, nem tudom hogy jutottunk ebbe az ágba lol');
+  }
+
+});
+
+
+socket.on('update', (fullGrid, users, curr_gen, points) => {
   drawFull(fullGrid);
+  //users = users.users;
+  currGenSpan.innerHTML = curr_gen;
+  console.log(users);
+  for(let i = 0; i < users.length; i++){
+    span = document.getElementById(users[i].username);
+    span.innerHTML = points[i];
+  }
+  /*for (const user of users) {
+    span = document.getElementById(user.username);
+    span.innerHTML = user.score;
+  }*/
 });

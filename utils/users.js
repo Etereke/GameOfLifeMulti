@@ -1,7 +1,7 @@
 const users = []
 
 // Join user to chat
-function userJoin(id, username, room){
+function userJoin(id, username, room, color){
     let grid = new Array(15);
     for(let i = 0; i < grid.length; i++){
       grid[i] = new Array(15);
@@ -10,10 +10,11 @@ function userJoin(id, username, room){
     }
   }
   let ready = false;
-    const user = {id, username, room, grid, ready}
+  let score = 0;
+  const user = {id, username, room, grid, ready, score, color}
 
-    users.push(user)
-    return user
+  users.push(user);
+  return user;
 }
 
 // Get the current user
@@ -35,7 +36,17 @@ function userLeave(id){
 
 // Get room users
 function getRoomUsers(room){
-    return users.filter(user => user.room === room)
+    return users.filter(user => user.room === room);
+}
+
+function getRoomColors(room){
+    let users = getRoomUsers(room);//users.filter(user => user.room === room && user.ready === true);
+  let colors = [];
+  for(const user in users){
+    //console.log(readyUsers[user]);
+    colors.push(users[user].color);
+  }
+  return colors;
 }
 
 // Get room users size
@@ -59,6 +70,19 @@ function addUserGrid(id, playerGrid){
   users[index].grid = playerGrid;
 }
 
+function resetReadyUsers(room){
+  let roomUsers = getRoomUsers(room);
+  for(let i = 0; i < roomUsers.length; i++){
+    roomUsers[i].ready = false;
+  }
+}
+
+function resetScores(room){
+  let roomUsers = getRoomUsers(room);
+  for(let i = 0; i < roomUsers.length; i++){
+    roomUsers[i].score = 0;
+  }
+}
 
 
 module.exports = {
@@ -69,5 +93,8 @@ module.exports = {
     countUsers,
     countReady,
     addUserGrid,
-    flipUserReady
+    flipUserReady, 
+    getRoomColors,
+    resetReadyUsers,
+    resetScores
 }

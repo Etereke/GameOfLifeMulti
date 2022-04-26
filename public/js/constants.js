@@ -6,14 +6,14 @@ const COLS = PLAYER_COLS * 2;
 const PLAYER_CELL_SIZE = 2 * CELL_SIZE;
 const CANVAS_WIDTH = COLS * CELL_SIZE;
 const CANVAS_HEIGHT = ROWS * CELL_SIZE;
-const colors = ["#FF0000", "#0022ff", "#0cf214", "#ffcd03"];
-const MAX_GEN = 100;
+const possibleColors = ["#FF0000", "#0022ff", "#0cf214", "#ffcd03"];
+const MAX_GEN = 3000;
 
 module.exports = {
   PLAYER_ROWS,
   PLAYER_COLS,
   ROWS,
   COLS,
-  colors,
+  possibleColors,
   MAX_GEN
 }
