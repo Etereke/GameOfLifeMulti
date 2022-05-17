@@ -1,0 +1,14 @@
+body{
+    background-color: #508bfc;
+}
+
+.table {
+    border-collapse: separate;
+    border-spacing:0 20px;
+}
+
+.container{
+    background-color: white;
+    border-radius: 20px;
+    margin-top: 20px;
+}
