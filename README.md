@@ -25,8 +25,9 @@ Ha a játék befejeződött, mindenkinél megjelenik a 'New game' gomb, amire r�
         -A játékosok egy szobában tudjanak több játékot lejátszani, ne kelljen újra belépni, ha új játékot akarnak kezdeni
         -A játék 2-4 játékossal legyen futtatható, vagyis ha csak ketten vannak egy szobában, és mindketten readyznek, akkor is fusson le a játék.
 
-## Contributing
+## Szekvencia diagram
 
+![image](https://user-images.githubusercontent.com/98815314/168903655-f8d270db-8f5b-4bc2-99fc-a77fe3a38891.png)
 
-## License
+## Használt eszközök, technológiák
 
