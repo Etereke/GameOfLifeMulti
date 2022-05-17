@@ -1,35 +1,21 @@
 # GameOfLifeMulti
-# Foobar
 
-Foobar is a Python library for dealing with word pluralization.
+## Leírás
+
+A GameOfLifeMulti projekt a híres Conway's Game of Life többjátékos verziója. A szabályok megegyeznek az eredeti játék szabályaival. Ami többjátékossá teszi, az a színek bevezetése. Minden játékosnak van egy saját területe a játék elején, és egy színe. A saját területén a saját színéből annyi sejtet tehet le, amennyit akar. A játék lefutása során az újonnan született mezők a következő szabályok alapján jönnek létre:
+    -Ha a születéshez szükséges 3 mező közül legalább 2 megegyező színű, akkor az új mező annak a színével fog megegyezni
+    -Ha mindhárom eltérő színű, akkor az új mező véletlenszerűen kap színt a három mező közül
+A játék során az élő sejtek száma jelzi az egyes játékosok pontszámát. A játék kétféleképpen érhet véget: vagy csak egy játékosnak marad élő sejtje, vagy eltelik egy előre meghatározott számú generáció. A játékot a legtöbb pontszámmal rendelkező játékos nyeri.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install foobar.
-
-```bash
-pip install foobar
-```
 
 ## Usage
 
-```python
-import foobar
 
-# returns 'words'
-foobar.pluralize('word')
-
-# returns 'geese'
-foobar.pluralize('goose')
-
-# returns 'phenomenon'
-foobar.singularize('phenomena')
-```
 
 ## Contributing
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
 
-Please make sure to update tests as appropriate.
 
 ## License
-[MIT](https://choosealicense.com/licenses/mit/)
+
