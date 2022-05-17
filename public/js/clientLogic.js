@@ -4,7 +4,7 @@ canvas.setAttribute("width", CANVAS_WIDTH);
 canvas.setAttribute("height", CANVAS_HEIGHT);
 ctx = canvas.getContext("2d");
 var activePlayers = 0;
-var playersDiv = document.getElementById("players");
+var playersTable = document.getElementById("players");
 var currGenSpan = document.getElementById("curr_gen");
 document.getElementById("max_gen").innerHTML = MAX_GEN;
 var readyBtn = document.getElementById("readyBtn");
@@ -12,6 +12,7 @@ var resetBtn = document.getElementById("resetBtn");
 var colors = [];
 var playerColor = "#000000";
 var myGrid = createPlayerGrid();
+var playerClassList = ["p-3 mb-2 bg-danger text-white", "p-3 mb-2 bg-primary text-white", "p-3 mb-2 bg-success text-white", "p-3 mb-2 bg-warning text-dark"];
 
 const { username, room } = Qs.parse(location.search, {
     ignoreQueryPrefix: true
@@ -124,24 +125,39 @@ socket.on('startGame', (fullGrid, playerColors) => {
   //let grid = createFullGrid();
   readyBtn.hidden = true;
   colors = playerColors;
-  console.log(colors);
   drawFull(fullGrid);
   //startAnimating(grid);
 });
 socket.on('roomUsers', (users) => {
-  playersDiv.innerHTML = "";
+  playersTable.innerHTML = "";
   users = users.users;
-
   for (let i = 0; i < users.length; i++) {
-    let div = document.createElement("div");
-    div.style.backgroundColor = "black";
-    div.style.color = users[i].color;
+    let tr = document.createElement("tr");
+    let td = document.createElement("td");
+    const myArray = playerClassList[i].split(" ");
+    for(valami of myArray) {
+      td.classList.add(valami);
+    }
+    td.innerHTML = users[i].username;
     let span = document.createElement("span");
     span.setAttribute("id", users[i].username);
     span.innerHTML = "0";
-    div.innerHTML = users[i].username;
-    div.appendChild(span);
-    playersDiv.appendChild(div);
+    td.appendChild(span);
+    tr.appendChild(td);
+    playersTable.appendChild(tr);
+    
+    /*
+<tr>
+                  <td id="red" class="p-3 mb-2 bg-danger text-white">Mark</td> 
+                  <td \>
+                  <td id="blue" class="p-3 mb-2 bg-primary text-white">Otto</td>
+                </tr>
+                <tr>
+                  <td id="green" class="p-3 mb-2 bg-success text-white">Jacob</td>
+                  <td \>
+                  <td id="yellow" class="p-3 mb-2 bg-warning text-dark">Thornton</td>
+                </tr>
+    */
   }
 });
 socket.on('color',({ color }) => {
@@ -178,7 +194,6 @@ socket.on('update', (fullGrid, users, curr_gen, points) => {
   drawFull(fullGrid);
   //users = users.users;
   currGenSpan.innerHTML = curr_gen;
-  console.log(users);
   for(let i = 0; i < users.length; i++){
     span = document.getElementById(users[i].username);
     span.innerHTML = points[i];
