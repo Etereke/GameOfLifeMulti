@@ -36,3 +36,7 @@ Ha a játék befejeződött, mindenkinél megjelenik a 'New game' gomb, amire r�
     - Socket.io
     - Repl.it
     - Github
+    
+## Futtatás
+    A server.js fájlt kell szerveren hostolni
+    Repl.it link : https://replit.com/@MartinNagy3/GameOfLifeMulti#server.js
