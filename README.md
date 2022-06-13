@@ -1,3 +1,5 @@
+/* Ez a projekt a Pannon MIK Szoftverfejlesztés tantárgy keretein belül készült. A projektet egy 3 fős csapat valósította meg.*/
+
 # GameOfLifeMulti
 
 ## Leírás
